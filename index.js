@@ -48,6 +48,8 @@ module.exports = function(sails) {
           var forceSync = migrate === 'drop';
           sequelize.sync({ force: forceSync }).then(function() {
             return next();
+          }).catch(function (e) {
+            next(e);
           });
         }        
       });
