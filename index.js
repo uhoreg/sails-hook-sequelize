@@ -1,3 +1,26 @@
+function fixModelDef(modelDef)
+{
+  _.each(modelDef.attributes, function (attrDef, name) {
+    if (_.isString(attrDef.type)) {
+      attrDef.type = Sequelize[attrDef.type.toUpperCase()](attrDef.options);
+    }
+    delete attrDef.options;
+  });
+  if (modelDef.autoPK) {
+    modelDef.attributes.id = {
+      type: Sequelize.INTEGER,
+      autoIncrement: true,
+      primaryKey: true,
+      allowNull: false
+    };
+  }
+  if (modelDef.options && _.isObject(modelDef.options.indexes))
+  {
+    modelDef.options.indexes = _.values(modelDef.options.indexes);
+  }
+  return modelDef;
+}
+
 module.exports = function(sails) {
   global['Sequelize'] = require('sequelize');
   Sequelize.cls = require('continuation-local-storage').createNamespace('sails-sequelize-postgresql');
@@ -29,7 +52,7 @@ module.exports = function(sails) {
           return next(err);
         }
         for (modelName in models) {
-          modelDef = models[modelName];
+          modelDef = fixModelDef(models[modelName]);
           sails.log.verbose('Loading model \'' + modelDef.globalId + '\'');
           var model = sequelize.define(modelDef.globalId, modelDef.attributes, modelDef.options);
           if (sails.config.globals.models) {
