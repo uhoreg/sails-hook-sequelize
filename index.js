@@ -46,6 +46,8 @@ module.exports = function(sails) {
 
       sequelize = new Sequelize(connection.database, connection.user, connection.password, connection.options);
       global['sequelize'] = sequelize;
+
+      hook.models = {};
       return sails.modules.loadModels(function(err, models) {
         var modelDef, modelName, ref;
         if (err != null) {
@@ -58,7 +60,7 @@ module.exports = function(sails) {
           if (sails.config.globals.models) {
             global[modelDef.globalId] = model;
           }
-          sails.models[modelDef.globalId.toLowerCase()] = model;
+          sails.models[modelDef.globalId.toLowerCase()] = hook.models[modelDef.globalId] = model;
         }
 
         for (modelName in models) {
@@ -98,6 +100,11 @@ module.exports = function(sails) {
         sails.log.verbose('Loading associations for \'' + modelDef.globalId + '\'');
         if (typeof modelDef.associations === 'function') {
           modelDef.associations(modelDef);
+        }
+        else if (typeof modelDef.associations === 'object') { // catches objects and arrays
+            _.each(modelDef.associations, function (association) {
+              this.models[modelDef.globalId][association.type](this.models[association.model], association.options);
+          }, this);
         }
       }
     },
